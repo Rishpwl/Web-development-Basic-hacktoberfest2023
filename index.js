@@ -1,71 +1,116 @@
-console.log("Welcome to News Website Project");
-// a91bbd17191f48d8ac63d59c12f72ea9
+const boxes = document.querySelectorAll(".box");
+const gameInfo = document.querySelector(".game-info");
+const newGameBtn = document.querySelector(".btn");
 
-let apiKey = "a91bbd17191f48d8ac63d59c12f72ea9";
 
-// Grab the News container
-let newsAccordian = document.getElementById("newsAccordian");
+let currentPlayer;
+let gameGrid;
 
-//  Create a GET request
-const xhr = new XMLHttpRequest();
-xhr.open(
-  "GET",
-  `https://newsapi.org/v2/top-headlines?country=in&apiKey=${apiKey}`,
-  true
-);
+const winningPositions = [
+    [0,1,2],
+    [3,4,5],
+    [6,7,8],
+    [0,3,6],
+    [1,4,7],
+    [2,5,8],
+    [0,4,8],
+    [2,4,6]
+];
 
-// What to do when response is ready
-xhr.onload = function () {
-  if (this.status === 200) {
-    let json = JSON.parse(this.responseText);
-    let articles = json.articles;
-    // console.log(articles);
-    let newsHtml = "";
-    articles.forEach(function(element, index) {
-        // console.log(element,index);
-        let news = `<div class="container my-3 accordion" id="newsAccordian">
-                          <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#multiCollapseExample${index}"             aria-expanded="false" aria-controls="multiCollapseExample${index}">
-                          <p><b> Breaking News ${index+1} </b> ${element["title"]}<p>
-                          </button>
-                        <div class="collapse multi-collapse" id= "multiCollapseExample${index}">
-                          <div class="card card-body" id="search">
-                               ${element["content"]}. <a href="${element['url']}" target="_blank" > Read More Here</a> 
-                               <img src="${element["urlToImage"]}" alt="Sorry Image not Available" style="border:5px solid black; display: block;
-                               margin-left: auto;
-                               margin-right: auto;
-                               width: 50%;">
-                            
-                          </div>
-                      </div>
-                   </div> `;
-          newsHtml += news;
+//let's create a function to initialise the game
+function initGame() {
+    currentPlayer = "X";
+    gameGrid = ["","","","","","","","",""];
+    //UI pr empty bhi karna padega boxes ko
+    boxes.forEach((box, index) => {
+        box.innerText = "";
+        boxes[index].style.pointerEvents = "all";
+        //one more thing is missing, initialise box with css properties again
+        box.classList = `box box${index+1}`;
     });
-    newsAccordian.innerHTML = newsHtml;
-  } else {
-    console.log(`Sorry`);
-  }
-};
+    newGameBtn.classList.remove("active");
+    gameInfo.innerText = `Current Player - ${currentPlayer}`;
+}
 
-xhr.send();
+initGame();
 
-// Search News
+function swapTurn() {
+    if(currentPlayer === "X") {
+        currentPlayer = "O";
+    }
+    else {
+        currentPlayer = "X";
+    }
+    //UI Update
+    gameInfo.innerText = `Current Player - ${currentPlayer}`;
+}
 
-let search = document.getElementById('searchTxt');
-search.addEventListener("input", function(){
+function checkGameOver() {
+    let answer = "";
 
-    inputVal = search.value.toLowerCase();
-    console.log('Input event fired!', inputVal);
-    let newsAccordians = document.getElementsByClassName('accordion')
-    Array.from(newsAccordians).forEach(function (element){
-        let newsTxt = element.getElementsByTagName("p")[0].innerText;
-        if(newsTxt.includes(inputVal)){
-            element.style.display = "block";
-        }
-        else{
-            element.style.display = "none";
-        }
-        console.log(newsTxt);
+    winningPositions.forEach((position) => {
+        //all 3 boxes should be non-empty and exactly same in value
+        if( (gameGrid[position[0]] !== "" || gameGrid[position[1]] !== "" || gameGrid[position[2]] !== "") 
+            && (gameGrid[position[0]] === gameGrid[position[1]] ) && (gameGrid[position[1]] === gameGrid[position[2]])) {
+
+                //check if winner is X
+                if(gameGrid[position[0]] === "X") 
+                    answer = "X";
+                else {
+                    answer = "O";
+                } 
+                    
+
+                //disable pointer events
+                boxes.forEach((box) => {
+                    box.style.pointerEvents = "none";
+                })
+
+                //now we know X/O is a winner
+                boxes[position[0]].classList.add("win");
+                boxes[position[1]].classList.add("win");
+                boxes[position[2]].classList.add("win");
+            }
+    });
+
+    //it means we have a winner
+    if(answer !== "" ) {
+        gameInfo.innerText = `Winner Player - ${answer}`;
+        newGameBtn.classList.add("active");
+        return;
+    }
+
+    //We know, NO Winner Found, let's check whether there is tie
+    let fillCount = 0;
+    gameGrid.forEach((box) => {
+        if(box !== "" )
+            fillCount++;
+    });
+
+    //board is Filled, game is TIE
+    if(fillCount === 9) {
+        gameInfo.innerText = "Game Tied !";
+        newGameBtn.classList.add("active");
+    }
+
+}
+
+function handleClick(index) {
+    if(gameGrid[index] === "" ) {
+        boxes[index].innerText = currentPlayer;
+        gameGrid[index] = currentPlayer;
+        boxes[index].style.pointerEvents = "none";
+        //swap karo turn ko
+        swapTurn();
+        //check koi jeet toh nahi gya
+        checkGameOver();
+    }
+}
+
+boxes.forEach((box, index) => {
+    box.addEventListener("click", () => {
+        handleClick(index);
     })
+});
 
-})
-
+newGameBtn.addEventListener("click", initGame);
